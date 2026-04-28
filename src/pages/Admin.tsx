@@ -5,10 +5,10 @@ import Icon from "@/components/ui/icon";
 const API = "https://functions.poehali.dev/15a21d1d-ef07-4cc3-8306-ac420bc9d468";
 
 const RANKS = [
-  { label: "Основатель", value: "Основатель", color: "text-orange-400" },
+  { label: "Лидер", value: "Лидер", color: "text-orange-400" },
   { label: "Заместитель", value: "Заместитель", color: "text-orange-300" },
-  { label: "Капитан", value: "Капитан", color: "text-gray-300" },
-  { label: "Солдат", value: "Солдат", color: "text-gray-400" },
+  { label: "Старший состав", value: "Старший состав", color: "text-gray-300" },
+  { label: "Младший состав", value: "Младший состав", color: "text-gray-400" },
   { label: "Стажёр", value: "Стажёр", color: "text-gray-500" },
 ];
 

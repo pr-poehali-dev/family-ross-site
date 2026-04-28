@@ -9,6 +9,10 @@ export default {
 		"./src/**/*.{ts,tsx}",
 			"./1777360551436542235.html"
 	],
+	safelist: [
+		"text-orange-400", "text-orange-300",
+		"text-gray-300", "text-gray-400", "text-gray-500",
+	],
 	prefix: "",
 	theme: {
 		container: {
