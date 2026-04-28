@@ -1,16 +1,17 @@
+import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
+
+const MEMBERS_URL = "https://functions.poehali.dev/1ff6ae19-ed30-416e-bab5-91b7128e6e3a";
 
 const HERO_IMG = "https://cdn.poehali.dev/projects/4b82c5e8-f91b-4dc2-8a01-f4ceb7e4d594/files/7ef7dd6e-73c4-4f92-86c3-3b4c4c9db702.jpg";
 const CARS_IMG = "https://cdn.poehali.dev/projects/4b82c5e8-f91b-4dc2-8a01-f4ceb7e4d594/files/abb3a7d1-1bc2-43a5-9b43-58c1c4c6672f.jpg";
 
-const MEMBERS = [
-  { name: "Armando Ross", rank: "Основатель", rank_color: "text-orange-400" },
-  { name: "Carlos Ross", rank: "Заместитель", rank_color: "text-orange-300" },
-  { name: "Miguel Ross", rank: "Капитан", rank_color: "text-gray-300" },
-  { name: "Diego Ross", rank: "Капитан", rank_color: "text-gray-300" },
-  { name: "Juan Ross", rank: "Солдат", rank_color: "text-gray-400" },
-  { name: "Pedro Ross", rank: "Солдат", rank_color: "text-gray-400" },
-];
+interface Member {
+  id: number;
+  name: string;
+  rank: string;
+  rank_color: string;
+}
 
 const RULES = [
   "Уважай членов семьи и не провоцируй конфликты внутри",
@@ -37,6 +38,18 @@ interface SectionsProps {
 }
 
 export default function Sections({ scrollTo }: SectionsProps) {
+  const [members, setMembers] = useState<Member[]>([]);
+
+  useEffect(() => {
+    fetch(MEMBERS_URL)
+      .then((r) => r.json())
+      .then((data) => {
+        const parsed = typeof data === "string" ? JSON.parse(data) : data;
+        setMembers(parsed.members || []);
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <>
       {/* HERO */}
@@ -135,8 +148,11 @@ export default function Sections({ scrollTo }: SectionsProps) {
                   Состав семьи
                 </h3>
                 <div className="space-y-3">
-                  {MEMBERS.map((m, i) => (
-                    <div key={i} className="flex items-center justify-between py-2 border-b border-white/5">
+                  {members.length === 0 && (
+                    <p className="text-white/30 text-sm text-center py-4">Загрузка...</p>
+                  )}
+                  {members.map((m) => (
+                    <div key={m.id} className="flex items-center justify-between py-2 border-b border-white/5">
                       <div className="flex items-center gap-3">
                         <div className="w-7 h-7 rounded-full bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-xs font-bold text-orange-400">
                           {m.name[0]}
