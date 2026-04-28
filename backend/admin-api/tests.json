@@ -1,0 +1,25 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Login with wrong password returns 401",
+      "method": "POST",
+      "path": "/login",
+      "body": { "password": "wrong" },
+      "expectedStatus": 401,
+      "expectedBody": { "error": "string" },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "GET members without token returns 401",
+      "method": "GET",
+      "path": "/members",
+      "expectedStatus": 401
+    }
+  ]
+}
