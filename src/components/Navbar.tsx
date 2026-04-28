@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import Icon from "@/components/ui/icon";
 
 const NAV_ITEMS = [
@@ -17,6 +18,8 @@ interface NavbarProps {
 }
 
 export default function Navbar({ active, menuOpen, setMenuOpen, scrollTo }: NavbarProps) {
+  const navigate = useNavigate();
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/5">
       <div className="max-w-6xl mx-auto px-4 flex items-center justify-between h-14">
@@ -37,6 +40,14 @@ export default function Navbar({ active, menuOpen, setMenuOpen, scrollTo }: Navb
               {item.label}
             </button>
           ))}
+          <button
+            onClick={() => navigate("/cabinet")}
+            className="flex items-center gap-1.5 border border-orange-500/40 hover:border-orange-500 text-orange-400 hover:text-orange-300 px-3 py-1.5 text-xs uppercase tracking-widest transition-all"
+            style={{ fontFamily: 'Oswald, sans-serif' }}
+          >
+            <Icon name="User" size={13} />
+            Кабинет
+          </button>
         </div>
 
         <button
@@ -58,6 +69,12 @@ export default function Navbar({ active, menuOpen, setMenuOpen, scrollTo }: Navb
               {item.label}
             </button>
           ))}
+          <button
+            onClick={() => { navigate("/cabinet"); setMenuOpen(false); }}
+            className="nav-link text-left py-2 text-orange-400"
+          >
+            Кабинет
+          </button>
         </div>
       )}
     </nav>
