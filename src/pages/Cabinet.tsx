@@ -67,6 +67,7 @@ export default function Cabinet() {
   const [authPlatform, setAuthPlatform] = useState<"vk" | "discord" | null>(null);
   const [error, setError] = useState("");
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [warnings, setWarnings] = useState<Warning[]>([]);
   const [vkSdkReady, setVkSdkReady] = useState(false);
 
@@ -97,6 +98,7 @@ export default function Cabinet() {
       const profile = await fetchProfile(data.session_token);
       setUser(profile.user);
       setWarnings(profile.warnings || []);
+      setIsAdmin(profile.is_admin || false);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Ошибка");
     } finally {
@@ -123,6 +125,7 @@ export default function Cabinet() {
       const profile = await fetchProfile(data.session_token);
       setUser(profile.user);
       setWarnings(profile.warnings || []);
+      setIsAdmin(profile.is_admin || false);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Ошибка");
     } finally {
@@ -177,7 +180,7 @@ export default function Cabinet() {
 
     if (sessionToken) {
       fetchProfile(sessionToken)
-        .then((data) => { setUser(data.user); setWarnings(data.warnings || []); })
+        .then((data) => { setUser(data.user); setWarnings(data.warnings || []); setIsAdmin(data.is_admin || false); })
         .catch(() => localStorage.removeItem("session_token"))
         .finally(() => setLoading(false));
     } else {
@@ -189,6 +192,7 @@ export default function Cabinet() {
     localStorage.removeItem("session_token");
     setUser(null);
     setWarnings([]);
+    setIsAdmin(false);
   }
 
   const displayName = user?.discord_name || user?.vk_name || "";
@@ -218,12 +222,24 @@ export default function Cabinet() {
             <span className="text-orange-500 font-bold text-xl" style={{ fontFamily: "Oswald, sans-serif" }}>ROSS</span>
             <span className="text-white/40 text-xs tracking-widest uppercase hidden sm:block">Family</span>
           </button>
-          {user && (
-            <button onClick={logout} className="flex items-center gap-2 text-white/40 hover:text-white text-sm transition-colors">
-              <Icon name="LogOut" size={16} />
-              Выйти
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {isAdmin && (
+              <button
+                onClick={() => navigate("/admin")}
+                className="flex items-center gap-1.5 border border-orange-500/40 hover:border-orange-500 text-orange-400 hover:text-orange-300 px-3 py-1.5 text-xs uppercase tracking-widest transition-all"
+                style={{ fontFamily: "Oswald, sans-serif" }}
+              >
+                <Icon name="Settings" size={13} />
+                Админка
+              </button>
+            )}
+            {user && (
+              <button onClick={logout} className="flex items-center gap-2 text-white/40 hover:text-white text-sm transition-colors">
+                <Icon name="LogOut" size={16} />
+                Выйти
+              </button>
+            )}
+          </div>
         </div>
       </nav>
 

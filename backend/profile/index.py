@@ -31,7 +31,8 @@ def handler(event: dict, context) -> dict:
     cur.execute(
         """
         SELECT u.id, u.vk_id, u.vk_name, u.vk_photo, u.member_id, u.session_expires,
-               m.name, m.rank, m.rank_color
+               m.name, m.rank, m.rank_color,
+               u.discord_id, u.discord_name, u.discord_avatar, u.is_admin
         FROM users u
         LEFT JOIN members m ON m.id = u.member_id
         WHERE u.session_token = %s
@@ -47,6 +48,7 @@ def handler(event: dict, context) -> dict:
 
     user_id, vk_id, vk_name, vk_photo, member_id, expires = row[:6]
     member_name, member_rank, member_rank_color = row[6], row[7], row[8]
+    discord_id, discord_name, discord_avatar, is_admin = row[9], row[10], row[11], row[12]
 
     if expires and datetime.now() > expires:
         cur.close()
@@ -85,5 +87,6 @@ def handler(event: dict, context) -> dict:
                 'member_rank_color': member_rank_color,
             },
             'warnings': warnings,
+            'is_admin': bool(is_admin),
         },
     }
