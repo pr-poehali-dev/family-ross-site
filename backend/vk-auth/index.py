@@ -1,4 +1,4 @@
-"""VK OAuth авторизация: обмен кода на токен, создание сессии."""
+"""VK авторизация: поддерживает VK ID SDK (code+device_id) и стандартный OAuth (code+redirect_uri)."""
 import json
 import os
 import secrets
@@ -18,53 +18,9 @@ def conn():
     return psycopg2.connect(os.environ['DATABASE_URL'])
 
 
-def handler(event: dict, context) -> dict:
-    if event.get('httpMethod') == 'OPTIONS':
-        return {'statusCode': 200, 'headers': CORS, 'body': ''}
-
-    body = json.loads(event.get('body') or '{}')
-    code = body.get('code', '').strip()
-    redirect_uri = body.get('redirect_uri', '').strip()
-
-    if not code or not redirect_uri:
-        return {'statusCode': 400, 'headers': CORS, 'body': {'error': 'code and redirect_uri required'}}
-
-    app_id = os.environ['VK_APP_ID']
-    app_secret = os.environ['VK_APP_SECRET']
-
-    params = urllib.parse.urlencode({
-        'client_id': app_id,
-        'client_secret': app_secret,
-        'redirect_uri': redirect_uri,
-        'code': code,
-    })
-    url = f'https://oauth.vk.com/access_token?{params}'
-    with urllib.request.urlopen(url, timeout=10) as resp:
-        vk_data = json.loads(resp.read())
-
-    if 'error' in vk_data:
-        return {'statusCode': 401, 'headers': CORS, 'body': {'error': vk_data.get('error_description', 'vk error')}}
-
-    vk_id = vk_data['user_id']
-    access_token = vk_data['access_token']
-
-    user_params = urllib.parse.urlencode({
-        'user_ids': vk_id,
-        'fields': 'photo_100',
-        'access_token': access_token,
-        'v': '5.199',
-    })
-    user_url = f'https://api.vk.com/method/users.get?{user_params}'
-    with urllib.request.urlopen(user_url, timeout=10) as resp:
-        user_resp = json.loads(resp.read())
-
-    vk_user = user_resp.get('response', [{}])[0]
-    vk_name = f"{vk_user.get('first_name', '')} {vk_user.get('last_name', '')}".strip()
-    vk_photo = vk_user.get('photo_100', '')
-
+def save_user(vk_id, vk_name, vk_photo):
     session_token = secrets.token_hex(32)
     expires = datetime.now() + timedelta(days=30)
-
     db = conn()
     cur = db.cursor()
     cur.execute(
@@ -85,6 +41,92 @@ def handler(event: dict, context) -> dict:
     db.commit()
     cur.close()
     db.close()
+    return session_token, user_id, member_id
+
+
+def get_vk_user_info(access_token, vk_id=None):
+    params = urllib.parse.urlencode({
+        'fields': 'photo_100',
+        'access_token': access_token,
+        'v': '5.199',
+        **(({'user_ids': vk_id}) if vk_id else {}),
+    })
+    url = f'https://api.vk.com/method/users.get?{params}'
+    with urllib.request.urlopen(url, timeout=10) as resp:
+        data = json.loads(resp.read())
+    user = data.get('response', [{}])[0]
+    return user
+
+
+def handler(event: dict, context) -> dict:
+    if event.get('httpMethod') == 'OPTIONS':
+        return {'statusCode': 200, 'headers': CORS, 'body': ''}
+
+    body = json.loads(event.get('body') or '{}')
+    code = body.get('code', '').strip()
+    device_id = body.get('device_id', '').strip()
+    redirect_uri = body.get('redirect_uri', '').strip()
+
+    if not code:
+        return {'statusCode': 400, 'headers': CORS, 'body': {'error': 'code required'}}
+
+    app_id = os.environ['VK_APP_ID']
+    app_secret = os.environ['VK_APP_SECRET']
+
+    # ── VK ID SDK (новый способ: code + device_id) ────────────────────────
+    if device_id:
+        base_redirect = 'https://preview--family-ross-site.poehali.dev'
+        params = urllib.parse.urlencode({
+            'code': code,
+            'device_id': device_id,
+            'client_id': app_id,
+            'client_secret': app_secret,
+            'grant_type': 'authorization_code',
+            'redirect_uri': base_redirect,
+        })
+        req = urllib.request.Request(
+            'https://id.vk.com/oauth2/auth',
+            data=params.encode(),
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+            method='POST',
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            token_data = json.loads(resp.read())
+
+        if 'error' in token_data:
+            return {'statusCode': 401, 'headers': CORS, 'body': {'error': token_data.get('error_description', 'vk id error')}}
+
+        access_token = token_data.get('access_token', '')
+        vk_id = token_data.get('user_id') or token_data.get('sub')
+        user = get_vk_user_info(access_token, vk_id)
+
+    # ── Стандартный OAuth (code + redirect_uri) ───────────────────────────
+    elif redirect_uri:
+        params = urllib.parse.urlencode({
+            'client_id': app_id,
+            'client_secret': app_secret,
+            'redirect_uri': redirect_uri,
+            'code': code,
+        })
+        url = f'https://oauth.vk.com/access_token?{params}'
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            vk_data = json.loads(resp.read())
+
+        if 'error' in vk_data:
+            return {'statusCode': 401, 'headers': CORS, 'body': {'error': vk_data.get('error_description', 'vk error')}}
+
+        vk_id = vk_data['user_id']
+        access_token = vk_data['access_token']
+        user = get_vk_user_info(access_token, vk_id)
+
+    else:
+        return {'statusCode': 400, 'headers': CORS, 'body': {'error': 'device_id or redirect_uri required'}}
+
+    vk_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+    vk_photo = user.get('photo_100', '')
+    vk_id = vk_id or user.get('id')
+
+    session_token, user_id, member_id = save_user(int(vk_id), vk_name, vk_photo)
 
     return {
         'statusCode': 200,
