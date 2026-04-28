@@ -152,7 +152,7 @@ export default function Cabinet() {
     const VKID = window.VKIDSDK;
     VKID.Config.init({
       app: Number(VK_APP_ID),
-      redirectUrl: window.location.origin,
+      redirectUrl: `${window.location.origin}/cabinet`,
       responseMode: VKID.ConfigResponseMode.Callback,
       source: VKID.ConfigSource.LOWCODE,
       scope: "",
@@ -162,7 +162,10 @@ export default function Cabinet() {
       container: vkContainerRef.current,
       showAlternativeLogin: true,
     })
-    .on(VKID.WidgetEvents.ERROR, () => setError("Ошибка VK ID"))
+    .on(VKID.WidgetEvents.ERROR, (err: unknown) => {
+      console.error("VK ID error:", err);
+      setError("Ошибка VK ID. Убедись что приложение ВК настроено и redirect URL совпадает.");
+    })
     .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, (payload) => {
       if (payload) handleVkIdSuccess(payload.code, payload.device_id);
     });

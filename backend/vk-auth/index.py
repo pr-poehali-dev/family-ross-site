@@ -75,7 +75,7 @@ def handler(event: dict, context) -> dict:
 
     # ── VK ID SDK (новый способ: code + device_id) ────────────────────────
     if device_id:
-        base_redirect = 'https://preview--family-ross-site.poehali.dev'
+        base_redirect = 'https://preview--family-ross-site.poehali.dev/cabinet'
         params = urllib.parse.urlencode({
             'code': code,
             'device_id': device_id,
